@@ -43,4 +43,60 @@ Take the previous replace and run it through the entire doc
 - `g&` 
 Show all the commands for `g` 
 - `:help g` 
+Select things in circle brackets (  )
+- `vib`
+Select things in curly brackets { }
+- `viB` 
+Append at the end of multiple lines 
+- `ctrl+v` -> `$` -> `A` 
+Indent whole file 
+- `gg=G` 
+Indent selected lines
+- `V` -> select the lines -> `=` 
+Suspend vim then bring back (to foreground)
+- `ctrl+z` -> `fg` 
+Open URL under cursor
+- `gx` 
+Open file under cursor
+- `gf` 
+Jump between marks in different files (you use capital letters for marking) i.e.,
+- `mA` (for example the letter `A` )
+Jump to line, for example, 40
+- `:40` equivalent to `40G` 
+Search all instances of word under cursor
+- `*` 
+Paste from register number 3
+- `"3p` 
+Yank to register number 7
+- `"7y` 
+List all marks 
+- `:marks` 
+Jump to next/previous line lower case mark
+- `]'` / `['` 
+Jump to next/previous lower case mark (exact location)
+- `]` + tick (cannot type tick inside code) / `[` + tick
+Jump to previous change in current buffer
+- tick + `.` 
+Jump to position where exited current buffer 
+- tick + `"` 
+Jump to position last edited in vim
+- tick + `0` 
+Delete all marks
+- `:delmarks!` 
+Delete mark `a`
+- `:delmark a` 
+Jump to next or previous in jump list
+- `ctrl+o` / `ctrl+i`
+List all jumps
+- `:jumps` 
+Go to older position in jump list
+- `g;` 
+Go to newer position in jump list
+- `g,` 
+Go to the 3rd older/newer location in jump list
+- `3g;` / `3g,` 
+Clear jump list
+- `:clearjumps` 
+Show change list
+- `:changes` 
 
