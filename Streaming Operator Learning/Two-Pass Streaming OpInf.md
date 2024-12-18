@@ -6,6 +6,11 @@
 - [ ] Complete most of the write up except for the intro, discussion, and conclusion of the Journal 📅 2024-12-31
 - [ ] Complete the bullet points for the intro, discussion, and conclusion for the journal  📅 2024-12-31
 
+
+## Making SketchySVD more efficient
+
+By combining the Randomized Eigenspace Merging (REM) algorithm with SketchySVD we can avoid working in the supposedly large dimension $n$ which emanates from the large data matrix $\mathbf{A}\in\mathbb{R}^{m\times n}$ . This new algorithm, which I call the **MergingSketchySVD** is essentially a divide-and-conquer approach of the original algorithm.
+
 ## Randomized Eigenspace Merging
 
 Below is a step-by-step randomized version of the baseline merging algorithm. This algorithm replaces the exact QR and SVD steps with randomized sketches, reducing computational cost while producing a good low-rank approximation with high probability. The key idea is to use a random projection to first reduce the problem size before performing expensive decompositions.
@@ -61,7 +66,7 @@ and parameters:
 3. **Orthonormalize the sketch:**  
     Compute a QR factorization of $Y$ to obtain an orthonormal basis $Q_\Omega$:
 	$$ 
-    Q_\Omega, \_ = \text{qr}(Y).
+    Q_\Omega, \_\_ = \text{qr}(Y).
 	$$  
     Now $Q_\Omega \in \mathbb{R}^{m \times \ell}$ is an orthonormal matrix whose columns form a good approximation to the range of $A$.
     
