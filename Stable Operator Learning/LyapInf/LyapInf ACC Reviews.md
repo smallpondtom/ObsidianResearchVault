@@ -103,7 +103,7 @@ The paper proposes a data-driven inference method for the Lyapunov function whic
 2. In Theorem 2, it may explain partial $\mathcal{D}$.
 3. In Section III B, the word ‘respectively’ may not be needed.
 4. In Section III C, 1) Training Data, is there a requirement on data sampling interval if the data are generated using Equation (7)?
-5. The reviewer finds that Equation (22) is difficult to understand as it is different from its description: we seek the maximum c such that … dot tild V <0 region. Authors may provide more explanation.
+5. The reviewer finds that Equation (22) is difficult to understand as it is different from its description: we seek the maximum $c$ such that … $\dot{\tilde{V}}<0$ region. Authors may provide more explanation.
 6. In Section IV C, what is the ‘direct numerical evaluation’? A reference may be provided. It would provide a significant tutorial benefit to readers.
 
 # Reviewer 6
