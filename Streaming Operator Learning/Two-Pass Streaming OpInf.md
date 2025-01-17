@@ -101,7 +101,7 @@ and parameters:
 **Remarks:**
 
 - If $(k_1 + k_2)$ is large, this approach avoids forming and factorizing a large matrix directly. Instead, it uses a random sketch $Y = A\Omega$ to quickly approximate the range of $A$.
-- The oversampling parameter pp ensures with high probability that the approximation is close to what you would get with a deterministic SVD. Common choices are $p = 5$ or $p = 10$.
+- The oversampling parameter $p$ ensures with high probability that the approximation is close to what you would get with a deterministic SVD. Common choices are $p = 5$ or $p = 10$. For details on the selection of the oversampling parameter $p$ refer to "Randomized Numerical Linear Algebra..." by Martinsson and Tropp (2020).
 - If needed, you can improve the approximation quality by applying power iterations or leverage block randNLA techniques. These details are covered in the literature by Halko, Martinsson, and Tropp (2011).
 
 This step-by-step algorithm completely replaces the deterministic QR and SVD steps in the baseline merge with a fully randomized procedure, yielding a randomized approximation to the merged eigenspace.
