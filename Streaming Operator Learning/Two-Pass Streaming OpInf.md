@@ -7,101 +7,87 @@
 - [ ] Complete the bullet points for the intro, discussion, and conclusion for the journal  📅 2024-12-31
 
 
-## Making SketchySVD more efficient
+## RLS and Gradient Descent
 
-By combining the Randomized Eigenspace Merging (REM) algorithm with SketchySVD we can avoid working in the supposedly large dimension $n$ which emanates from the large data matrix $\mathbf{A}\in\mathbb{R}^{m\times n}$ . This new algorithm, which I call the **MergingSketchySVD** is essentially a divide-and-conquer approach of the original algorithm.
+They are _related_, but RLS is _more_ than just a simple gradient descent. In particular:
 
-## Randomized Eigenspace Merging
-
-Below is a step-by-step randomized version of the baseline merging algorithm. This algorithm replaces the exact QR and SVD steps with randomized sketches, reducing computational cost while producing a good low-rank approximation with high probability. The key idea is to use a random projection to first reduce the problem size before performing expensive decompositions.
-
-**Setup:**  
-You have two partial SVDs (or truncated eigenspaces),
-
-- $P_1 = (U_1 \in \mathbb{R}^{m \times k_1} , S_1 \in \mathbb{R}^{k_1 \times k_1})$ 
-- $P_2 = (U_2 \in \mathbb{R}^{m \times k_2}, S_2 \in \mathbb{R}^{k_2 \times k_2})$   
-
-and parameters:
-
-- Truncation factor $k$  (desired rank, with $k \leq k_1+k_2$ )
-- Decay factor $\gamma$
-- An oversampling parameter $p$ (a small integer like 5 or 10 to improve approximation quality)
-- Define $\ell = k + p$ for the sketch dimension.
-
-**Goal:** Merge $P_1$ and $P_2$ into a new truncated SVD $P = (U, S)$ that approximates the combined subspace spanned by $[\gamma U_1 S_1, U_2 S_2]$ , while keeping only the top $k$ singular components.
-
----
-
-**Randomized Baseline Merge Algorithm:**
-
-**Input:**
-
-- $U_1, S_1, U_2, S_2$
-- Truncation factor $k$
-- Decay factor $\gamma$
-- Oversampling $p$ (with $\ell = k+p$)
-- A random test matrix $\Omega \in \mathbb{R}^{(k_1+k_2) \times \ell}$, typically with i.i.d. Gaussian entries.
-
-**Output:**
-
-- $U \in \mathbb{R}^{m \times k}$
-- $S \in \mathbb{R}^{k \times k}$
-
-**Steps:**
-
-1. **Form the merged matrix A:**  
-    Construct the combined matrix:
-	$$ 
-		A = [\gamma U_1 S_1 \;\; U_2 S_2] \in \mathbb{R}^{m \times (k_1+k_2)}.
-	 $$
-    This matrix represents the combined subspace you want to approximate.
+- **Ordinary Gradient Descent** repeatedly updates the parameter estimate based on the local gradient of the cost function (often requiring a step size). Each new step basically says
+    $$x_{\text{new}} = x_{\text{old}} \;-\; \alpha\,\nabla \! J(x_{\text{old}})$$
     
-2. **Sketch the subspace with random projection:**  
-    Multiply $A$ by the random test matrix $\Omega$:
-	$$    
-	Y = A \Omega \in \mathbb{R}^{m \times \ell}.
-	$$  
-    The matrix $Y$ captures the dominant column space of $A$ with high probability.
+- **Recursive Least Squares** (RLS) uses a _matrix‐based_ update rule derived from the exact normal equations for least squares. It continually _adapts the inverse_ of the Hessian (the matrix A⊤AA^\top A in linear regression) via the _matrix‐inversion lemma_. This lets you jump directly to a solution _as though_ you were doing a “Newton‐type” update in each iteration.
     
-3. **Orthonormalize the sketch:**  
-    Compute a QR factorization of $Y$ to obtain an orthonormal basis $Q_\Omega$:
-	$$ 
-    Q_\Omega, \_\_ = \text{qr}(Y).
-	$$  
-    Now $Q_\Omega \in \mathbb{R}^{m \times \ell}$ is an orthonormal matrix whose columns form a good approximation to the range of $A$.
+From an “optimization” perspective, you can see RLS as a specialized form of _Newton’s method_ (or Gauss–Newton in the linear‐in‐the‐parameters case) applied recursively to the least‐squares cost. Meanwhile, _plain_ gradient descent is typically a first‐order method without directly estimating or inverting the Hessian.
+
+Hence:
+
+1. **RLS does descend** the squared‐error cost in a streaming/recursive way.
+2. **It resembles** a Newton‐type method (since it effectively keeps track of the Hessian inverse).
+3. **It usually converges much faster** than pure gradient descent because it uses that matrix‐inversion lemma to make _exact_ second‐order steps for the least‐squares problem.
+
+Therefore, you can say RLS is somewhat _analogous_ to gradient descent, but _it is actually closer to a full second‐order update_ for the least‐squares cost, rather than a simple first‐order gradient step.
+
+### 1. Gradient Descent vs. Newton’s Method
+
+Consider a cost function $J(\theta)$. The two fundamental update schemes are:
+
+1. **(First-order) Gradient Descent**
+    $$\theta_{k+1} \;=\; \theta_k \;-\; \alpha\,\nabla J(\theta_k).$$
     
-4. **Reduce the problem size:**  
-    Project $A$ onto the subspace spanned by $Q_\Omega$ to get a much smaller matrix $B$:
-	$$ 
-	    B = Q_\Omega^T A \in \mathbb{R}^{\ell \times (k_1+k_2)}.
-	$$    
-    Now you only need to deal with $B$, which is significantly smaller than $A$.
+    This uses only the _first derivative_ (gradient) and a step size $\alpha$.
     
-5. **Compute a truncated SVD of $B$:**  
-    Compute the (exact) SVD of $B$:
-   $$ 
-    B = U_B S_B V_B^T.
-	$$ 
-    Then truncate to the top $k$ singular values and vectors:
-    - $U_B' = U_B[:,1:k]$, $S = S_B[1:k]$, and $V_B' = V_B[:,1:k]$.
-6. **Map back to original space and finalize $U$ and $S$:**  
-    The approximation to $A$ can be written as:
-	$$ 
-	    A \approx Q_\Omega U_B' S (V_B')^T.
-	$$  
-    The truncated SVD of $A$ is then given by:
-	$$ 
-	    U = Q_\Omega U_B' \in \mathbb{R}^{m \times k}, \quad S = \text{diag}(S[1:k]) \in \mathbb{R}^{k \times k}.
-	$$  
-    Thus, the merged subspace is represented by $(U, S)$, where $U$ contains the top kk left singular vectors and $S$ the top $k$ singular values.
+2. **(Second-order) Newton’s Method**
+    $$\theta_{k+1}  =  \theta_k  −  \mathbf{H}^{-1}(\theta_k) \nabla J(\theta_k),$$
+    
+    where $\mathbf{H}(\theta)$ is the _Hessian_ (matrix of second derivatives). Thus Newton’s method uses _both_ the gradient and the Hessian (or its inverse) to potentially converge _much faster_.
     
 
 ---
 
-**Remarks:**
+### 2. Least-Squares Problem and Its Hessian
 
-- If $(k_1 + k_2)$ is large, this approach avoids forming and factorizing a large matrix directly. Instead, it uses a random sketch $Y = A\Omega$ to quickly approximate the range of $A$.
-- The oversampling parameter $p$ ensures with high probability that the approximation is close to what you would get with a deterministic SVD. Common choices are $p = 5$ or $p = 10$. For details on the selection of the oversampling parameter $p$ refer to "Randomized Numerical Linear Algebra..." by Martinsson and Tropp (2020).
-- If needed, you can improve the approximation quality by applying power iterations or leverage block randNLA techniques. These details are covered in the literature by Halko, Martinsson, and Tropp (2011).
+Consider a linear (or linear-in-the-parameters) least-squares problem. Suppose at each step $k$ we get a data vector $\phi_k$ and a target $y_k$ and want to solve:
 
-This step-by-step algorithm completely replaces the deterministic QR and SVD steps in the baseline merge with a fully randomized procedure, yielding a randomized approximation to the merged eigenspace.
+$$\min_{\theta}\; \sum_{i=1}^{k} \bigl\|y_i - \phi_i^{\top}\theta\bigr\|^2.$$
+
+1. The _gradient_ of the cost w.r.t. $\theta$ is $\nabla J(\theta) \;=\; -2 \sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^{\top}\theta\bigr)$.
+2. The _Hessian_ is (assuming a uniform weighting) $\mathbf{H} \;=\; 2\sum_{i=1}^{k}\phi_i\,\phi_i^{\top} \;=\; 2\,\Phi^\top \Phi$, where $\Phi$ collects the feature vectors $\phi_i$.
+
+In a batch setting, a _Newton update_ for the least-squares problem would do
+
+$$\theta_{\text{newton}}^{(k)} \;=\; \theta_{\text{old}} \;-\; \bigl(\Phi^\top\Phi\bigr)^{-1}\, \bigl(\textstyle\sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^\top \theta_{\text{old}}\bigr)\bigr).$$
+
+Since $\Phi^\top\Phi$ is the Hessian (up to a factor 2), this is effectively a second-order method.
+
+---
+
+### 3. RLS = Recursive Inversion of the Hessian
+
+**Recursive Least Squares** maintains and _updates_ an estimate of $\bigl(\Phi^\top\Phi\bigr)^{-1}$ in real time. Specifically, if $P_{k-1}\approx(\Phi_{k-1}^\top \Phi_{k-1})^{-1}$, then upon arrival of the new data $(\phi_k, y_k)$, RLS applies the _matrix-inversion lemma_ (Sherman–Morrison update) to get $P_k\approx(\Phi_k^\top \Phi_k)^{-1}$. Then the update to $\theta_k$ is:
+
+$$\theta_k = \theta_{k-1} \;+\; P_{k-1}\,\phi_k \,\Bigl[y_k \;-\;\phi_k^\top \theta_{k-1}\Bigr],$$
+
+where
+
+$$P_k \;=\; P_{k-1} \;-\; \frac{P_{k-1}\,\phi_k\,\phi_k^\top\,P_{k-1}}{1 + \phi_k^\top\,P_{k-1}\,\phi_k}.$$
+
+Observe how $P_{k-1}$ acts like $\bigl(\Phi_{k-1}^\top \Phi_{k-1}\bigr)^{-1}$. Thus the gain term
+
+$$\mathbf{g}_k = P_{k-1}\,\phi_k$$
+
+is effectively $\mathbf{H}^{-1}\nabla J(\theta)$ in the local least-squares sense, _not just_ a simple gradient direction. That is _inherently second-order_.
+
+---
+
+### 4. Conclusion: RLS Is Like a Newton Update
+
+Gradient descent would do something like
+
+$$\theta_k = \theta_{k-1} - \alpha \sum_{i=1}^k \phi_i \bigl(y_i - \phi_i^\top \theta_{k-1}\bigr),$$
+
+which is purely first-order and typically requires tuning $\alpha$ for stability/speed.
+
+**RLS** automatically adjusts the step direction and scale as if it _knew_ (or updated knowledge of) the Hessian inverse $\bigl(\Phi^\top\Phi\bigr)^{-1}$. In that sense, _on each new sample,_ it is doing a local second-order (Newton-like) step _without needing a separate line search or step-size parameter_. This is exactly what sets RLS apart from standard first-order gradient updates.
+
+Hence, we say:
+
+> **RLS can be viewed as a second-order update** for a linear least-squares cost, because it _recursively_ maintains $\mathbf{H}^{-1}$ (the inverse Hessian) and uses it in each parameter update.
