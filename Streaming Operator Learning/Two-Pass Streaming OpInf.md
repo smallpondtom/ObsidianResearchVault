@@ -14,7 +14,7 @@ They are _related_, but RLS is _more_ than just a simple gradient descent. In pa
 - **Ordinary Gradient Descent** repeatedly updates the parameter estimate based on the local gradient of the cost function (often requiring a step size). Each new step basically says
     $$x_{\text{new}} = x_{\text{old}} \;-\; \alpha\,\nabla \! J(x_{\text{old}})$$
     
-- **Recursive Least Squares** (RLS) uses a _matrix‐based_ update rule derived from the exact normal equations for least squares. It continually _adapts the inverse_ of the Hessian (the matrix A⊤AA^\top A in linear regression) via the _matrix‐inversion lemma_. This lets you jump directly to a solution _as though_ you were doing a “Newton‐type” update in each iteration.
+- **Recursive Least Squares** (RLS) uses a _matrix‐based_ update rule derived from the exact normal equations for least squares. It continually _adapts the inverse_ of the Hessian (the matrix $A^\top A$ in linear regression) via the _matrix‐inversion lemma_. This lets you jump directly to a solution _as though_ you were doing a “Newton‐type” update in each iteration.
     
 From an “optimization” perspective, you can see RLS as a specialized form of _Newton’s method_ (or Gauss–Newton in the linear‐in‐the‐parameters case) applied recursively to the least‐squares cost. Meanwhile, _plain_ gradient descent is typically a first‐order method without directly estimating or inverting the Hessian.
 
@@ -36,7 +36,7 @@ Consider a cost function $J(\theta)$. The two fundamental update schemes are:
     This uses only the _first derivative_ (gradient) and a step size $\alpha$.
     
 2. **(Second-order) Newton’s Method**
-    $$\theta_{k+1}  =  \theta_k  −  \mathbf{H}^{-1}(\theta_k) \nabla J(\theta_k),$$
+    $$\theta_{k+1}  =  \theta_k  −  \alpha\mathbf{H}^{-1}(\theta_k) \nabla J(\theta_k),$$
     
     where $\mathbf{H}(\theta)$ is the _Hessian_ (matrix of second derivatives). Thus Newton’s method uses _both_ the gradient and the Hessian (or its inverse) to potentially converge _much faster_.
     
@@ -54,7 +54,7 @@ $$\min_{\theta}\; \sum_{i=1}^{k} \bigl\|y_i - \phi_i^{\top}\theta\bigr\|^2.$$
 
 In a batch setting, a _Newton update_ for the least-squares problem would do
 
-$$\theta_{\text{newton}}^{(k)} \;=\; \theta_{\text{old}} \;-\; \bigl(\Phi^\top\Phi\bigr)^{-1}\, \bigl(\textstyle\sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^\top \theta_{\text{old}}\bigr)\bigr).$$
+$$\theta_{\text{newton}}^{(k)} \;=\; \theta_{\text{old}} \;-\; \alpha \bigl(\Phi^\top\Phi\bigr)^{-1}\, \bigl(\textstyle\sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^\top \theta_{\text{old}}\bigr)\bigr).$$
 
 Since $\Phi^\top\Phi$ is the Hessian (up to a factor 2), this is effectively a second-order method.
 
@@ -64,17 +64,23 @@ Since $\Phi^\top\Phi$ is the Hessian (up to a factor 2), this is effectively a s
 
 **Recursive Least Squares** maintains and _updates_ an estimate of $\bigl(\Phi^\top\Phi\bigr)^{-1}$ in real time. Specifically, if $P_{k-1}\approx(\Phi_{k-1}^\top \Phi_{k-1})^{-1}$, then upon arrival of the new data $(\phi_k, y_k)$, RLS applies the _matrix-inversion lemma_ (Sherman–Morrison update) to get $P_k\approx(\Phi_k^\top \Phi_k)^{-1}$. Then the update to $\theta_k$ is:
 
-$$\theta_k = \theta_{k-1} \;+\; P_{k-1}\,\phi_k \,\Bigl[y_k \;-\;\phi_k^\top \theta_{k-1}\Bigr],$$
+$$\theta_k = \theta_{k-1} \;+\; c_kP_{k-1}\,\phi_k \,\Bigl[y_k \;-\;\phi_k^\top \theta_{k-1}\Bigr],$$
 
 where
 
 $$P_k \;=\; P_{k-1} \;-\; \frac{P_{k-1}\,\phi_k\,\phi_k^\top\,P_{k-1}}{1 + \phi_k^\top\,P_{k-1}\,\phi_k}.$$
 
-Observe how $P_{k-1}$ acts like $\bigl(\Phi_{k-1}^\top \Phi_{k-1}\bigr)^{-1}$. Thus the gain term
+Observe how $P_{k-1}$ acts like $\bigl(\Phi_{k-1}^\top \Phi_{k-1}\bigr)^{-1}$ . Thus the gain term
 
-$$\mathbf{g}_k = P_{k-1}\,\phi_k$$
+$$\mathbf{g}_k = c_kP_{k-1}\,\phi_k$$
 
-is effectively $\mathbf{H}^{-1}\nabla J(\theta)$ in the local least-squares sense, _not just_ a simple gradient direction. That is _inherently second-order_.
+is effectively $\mathbf{H}^{-1}\nabla J(\theta)$ in the local least-squares sense, _not just_ a simple gradient direction. That is _inherently second-order_. Additionally, the conversion factor 
+
+$$
+c_k = (1 + \phi_k^\top P_{k-1}\phi_k)^{-1}
+$$
+
+acts as an aggressive, adaptive step size $\alpha(k) = c_k$ allowing a quicker convergence.
 
 ---
 
