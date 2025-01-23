@@ -54,7 +54,7 @@ $$\min_{\theta}\; \sum_{i=1}^{k} \bigl\|y_i - \phi_i^{\top}\theta\bigr\|^2.$$
 
 In a batch setting, a _Newton update_ for the least-squares problem would do
 
-$$\theta_{\text{newton}}^{(k)} \;=\; \theta_{\text{old}} \;-\; \alpha \bigl(\Phi^\top\Phi\bigr)^{-1}\, \bigl(\textstyle\sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^\top \theta_{\text{old}}\bigr)\bigr).$$
+$$\theta_{\text{newton}}^{(k)} \;=\; \theta_{\text{old}} \;+\; \alpha \bigl(\Phi^\top\Phi\bigr)^{-1}\, \bigl(\textstyle\sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^\top \theta_{\text{old}}\bigr)\bigr).$$
 
 Since $\Phi^\top\Phi$ is the Hessian (up to a factor 2), this is effectively a second-order method.
 
@@ -70,7 +70,7 @@ where
 
 $$P_k \;=\; P_{k-1} \;-\; \frac{P_{k-1}\,\phi_k\,\phi_k^\top\,P_{k-1}}{1 + \phi_k^\top\,P_{k-1}\,\phi_k}.$$
 
-Observe how $P_{k-1}$ acts like $\bigl(\Phi_{k-1}^\top \Phi_{k-1}\bigr)^{-1}$ . Thus the gain term
+Observe how $P_{k-1}$ acts like $\bigl(\Phi_{k-1}^\top \Phi_{k-1}\bigr)^{-1}$ . Thus the "gain" term
 
 $$\mathbf{g}_k = c_kP_{k-1}\,\phi_k$$
 
@@ -84,11 +84,31 @@ acts as an aggressive, adaptive step size $\alpha(k) = c_k$ allowing a quicker c
 
 ---
 
+### 4. Deriving the Streaming Error from the Newton Update
+
+From the Newton update analogy of the RLS
+
+$$\theta_{\text{newton}}^{(k)} \;=\; \theta_{\text{old}} \;+\; \alpha \bigl(\Phi^\top\Phi\bigr)^{-1}\, \bigl(\textstyle\sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^\top \theta_{\text{old}}\bigr)\bigr).$$
+
+we can define the *streaming error* as
+$$
+\mathcal{E} = \theta_* - \theta,
+$$
+where $\theta_*$ is the "batch" solution using all data at once. Then,
+
+$$\theta_* - \theta_{\text{newton}}^{(k)} \;=\; \theta_* - \theta_{\text{old}} \;-\; \alpha \bigl(\Phi^\top\Phi\bigr)^{-1}\, \bigl(\textstyle\sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^\top \theta_{\text{old}}\bigr)\bigr).$$
+Hence,
+$$\mathcal{E}_{\text{new}} \;=\; \mathcal{E}_{\text{old}} \;-\; \alpha \bigl(\Phi^\top\Phi\bigr)^{-1}\, \bigl(\textstyle\sum_{i=1}^k \phi_i\,\bigl(y_i - \phi_i^\top \theta_{\text{old}}\bigr)\bigr),$$
+
+which shows how the streaming error is also updated in a second-order fashion.
+
+---
+
 ### 4. Conclusion: RLS Is Like a Newton Update
 
 Gradient descent would do something like
 
-$$\theta_k = \theta_{k-1} - \alpha \sum_{i=1}^k \phi_i \bigl(y_i - \phi_i^\top \theta_{k-1}\bigr),$$
+$$\theta_k = \theta_{k-1} - \alpha \sum_{i=1}^k \phi_i \bigl(y_i + \phi_i^\top \theta_{k-1}\bigr),$$
 
 which is purely first-order and typically requires tuning $\alpha$ for stability/speed.
 
